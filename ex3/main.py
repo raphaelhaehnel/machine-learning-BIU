@@ -111,7 +111,24 @@ def centroid_update(data, k, dim):
     return new_mu
 
 
-def cluster(data, mu):
+def run_clustering(data, k, mu, dim):
+
+    for i in range(LIMIT_ITER):
+        data = assignment(data, mu, dim)
+        new_mu = centroid_update(data, k, dim)
+        if np.array_equal(new_mu, mu):
+            break
+        mu = new_mu
+        show_plot(data, mu, i, save=True, dim=dim)
+
+    return data
+
+
+def cost_function():
+    pass
+
+
+def success_rate(data, output):
     pass
 
 
@@ -142,21 +159,16 @@ if __name__ == "__main__":
     k = 10
     n = 100
     c = k
-    dim = 2
-
-    data = generate_data(n, c, dim)
-    mu = generate_means(k, dim)
-
-    X_train, y_train, X_test, y_test = retrive_data()
+    dim = 3
 
     if os.path.exists('./output'):
         shutil.rmtree('./output')
 
-    for i in range(LIMIT_ITER):
+    X_train, y_train, X_test, y_test = retrive_data()
 
-        data = assignment(data, mu, dim)
-        new_mu = centroid_update(data, k, dim)
-        if np.array_equal(new_mu, mu):
-            break
-        mu = new_mu
-        show_plot(data, mu, i, save=True, dim=dim)
+    data = generate_data(n, c, dim)
+    mu = generate_means(k, dim)
+
+    output = run_clustering(data, k, mu, dim)
+
+    print("EOF")
