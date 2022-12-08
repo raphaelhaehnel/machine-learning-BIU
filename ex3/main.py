@@ -1,9 +1,16 @@
+#################################
+# TITLE: ex3 machine learning BIU
+# WRITER: Raphael Haehnel
+# DATE: 8/12/2022
+##################################
+
 import os
 import matplotlib.pyplot as plt
 import numpy as np
 import functools
 import scipy.io
 import shutil
+from tqdm import tqdm
 
 LIMIT_ITER = 100
 
@@ -25,7 +32,7 @@ def generate_means(k, dim):
 
 
 def generate_means_pixels(k, dim):
-    means = np.floor(255*np.random.rand(k, dim))
+    means = np.random.rand(k, dim)
     label = np.array([np.array(range(k))]).T
     return np.append(means, label, axis=1)
 
@@ -72,7 +79,7 @@ def assignment(data, mu, dim):
     x = data[:, :dim]
     result = np.zeros((1, data.shape[0]))
 
-    for i in range(mu.shape[0]):
+    for i in tqdm(range(mu.shape[0])):
         diff = x-mu_duplicated[i]
         result = np.vstack([result, np.apply_along_axis(
             lambda a: np.sum(a**2), 1, diff)])
@@ -135,6 +142,10 @@ def success_rate(y_train, y_output):
     return np.count_nonzero(y_output == y_train)/len(y_output)*100
 
 
+def normalize(array):
+    return array / array.max()
+
+
 def retrive_data(max_n):
     mat = scipy.io.loadmat('mnist_all.mat')
 
@@ -188,7 +199,7 @@ def retrive_data(max_n):
     y_test = np.concatenate((y0_test, y1_test, y2_test, y3_test,
                             y4_test, y5_test, y6_test, y7_test, y8_test, y9_test), axis=0)
 
-    return X_train, y_train, X_test, y_test
+    return normalize(X_train), normalize(y_train), normalize(X_test), normalize(y_test)
 
 
 if __name__ == "__main__":
