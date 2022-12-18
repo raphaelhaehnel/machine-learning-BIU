@@ -204,7 +204,7 @@ def retrive_data(max_n):
 
 if __name__ == "__main__":
 
-    k = 10
+    k = 5
     c = k
 
     if os.path.exists('./output'):
