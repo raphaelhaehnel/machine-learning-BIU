@@ -59,12 +59,19 @@ def generate_alphas(k):
     return np.ones(k)
 
 
-def show_plot(data, mu=None, i=0, save=False):
+def show_plot(data, mu=None, i=0, gaussian_list=None, alpha_list=None, save=False):
 
     plt.scatter(x=data[:, 0], y=data[:, 1], c=data[:, 2], s=5)
     if mu is not None:
         plt.scatter(x=mu[:, 0], y=mu[:, 1], c=mu[:, 2],
                     marker="*", edgecolors="black", s=100)
+    if gaussian_list is not None:
+        N = 100
+        X = np.linspace(MIN_X, MAX_X, N)
+        Y = np.linspace(MIN_Y, MAX_Y, N)
+        Z = draw_gaussian(X, Y, gaussian_list, alpha_list)
+        plt.contour(X, Y, Z)
+
     plt.xlim([MIN_X, MAX_X])
     plt.ylim([MIN_Y, MAX_Y])
 
@@ -155,14 +162,14 @@ def cluster(data, mu):
     return data, mu, total_cost
 
 
-def draw_gaussian(X, Y, gaussian_list: list[sc._multivariate.multivariate_normal_frozen]):
+def draw_gaussian(X, Y, gaussian_list: list[sc._multivariate.multivariate_normal_frozen], alpha_list):
 
     X, Y = np.meshgrid(X, Y)
     pos = np.dstack((X, Y))
     Z_tot = np.zeros(X.shape)
 
-    for gaussian in gaussian_list:
-        Z_tot += gaussian.pdf(pos)
+    for i in range(len(gaussian_list)):
+        Z_tot += alpha_list[i]*gaussian_list[i].pdf(pos)
     return Z_tot
 
 
@@ -177,29 +184,41 @@ def generate_list_gaussians(means):
     return gaussian_list
 
 
-def expectation_step(gaussian: list[sc._multivariate.multivariate_normal_frozen], data, k, alpha):
+def expectation_step(gaussian: list[sc._multivariate.multivariate_normal_frozen], data, k, alpha_list):
     x = data[:, :2]
 
     # Sum for the denominator
     divisor = 0
     for l in range(k):
-        divisor += gaussian[l].pdf(x)*alpha[l]
+        divisor += gaussian[l].pdf(x)*alpha_list[l]
 
     w_list = []
     for j in range(k):
-        w = gaussian[j].pdf(x)*alpha[j] / divisor
+        w = gaussian[j].pdf(x)*alpha_list[j] / divisor
+        w = w.reshape((w.shape[0], 1))
         w_list.append(w)
 
     return w_list
 
 
-def minimalization_step(w_list):
+def minimalization_step(w_list, data):
+    x = data[:, :2]
+    gaussian_list = []
+    alpha_list = []
 
-    for j in range(k):
-        alpha = np.
-        mu =
-        sigma =
-        pass
+    for w in w_list:
+        n = w.shape[0]
+
+        alpha = 1/n * np.sum(w)
+        mu = sum(w*x)/np.sum(w)
+        sigma = np.matmul((x-mu).T, w*(x-mu))/np.sum(w)
+
+        gaussian_list.append(sc.multivariate_normal(mu, sigma))
+        # TODO numpy.linalg.LinAlgError: When `allow_singular is False`, the input matrix must be symmetric positive definite
+
+        alpha_list.append(alpha)
+
+    return gaussian_list, alpha_list
 
 
 if __name__ == "__main__":
@@ -215,19 +234,22 @@ if __name__ == "__main__":
     show_plot(data_real, i=-1, save=False)
     mu = generate_means(k)
     sigma = generate_sigmas(k)
-    alphas = generate_alphas(k)
+    alpha_list = generate_alphas(k)
 
     N = 100
     X = np.linspace(MIN_X, MAX_X, N)
     Y = np.linspace(MIN_Y, MAX_Y, N)
     gaussian_list = generate_list_gaussians(mu[:, :2])
-    Z = draw_gaussian(X, Y, gaussian_list)
+    Z = draw_gaussian(X, Y, gaussian_list, alpha_list)
     plt.contour(X, Y, Z)
     plt.show()
 
-    w_list = expectation_step(gaussian_list, data, k, alphas)
+    for i in range(5):
+        w_list = expectation_step(gaussian_list, data, k, alpha_list)
+        gaussian_list, alpha_list = minimalization_step(w_list, data)
 
-    show_plot(data, mu, 0, save=True)
+        show_plot(data, mu, 0, save=False,
+                  gaussian_list=gaussian_list, alpha_list=alpha_list)
 
     data, mu, total_cost = cluster(data, mu)
     print("eof")
