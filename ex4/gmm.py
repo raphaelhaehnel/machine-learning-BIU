@@ -55,6 +55,10 @@ def generate_sigmas(k):
     return np.repeat(np.eye(2)[None, ...], 2, axis=0)
 
 
+def generate_alphas(k):
+    return np.ones(k)
+
+
 def show_plot(data, mu=None, i=0, save=False):
 
     plt.scatter(x=data[:, 0], y=data[:, 1], c=data[:, 2], s=5)
@@ -151,28 +155,24 @@ def cluster(data, mu):
     return data, mu, total_cost
 
 
-def generate_gaussian(X, Y, mu, sigma):
+def draw_gaussian(X, Y, gaussian_list: list[sc._multivariate.multivariate_normal_frozen]):
 
     X, Y = np.meshgrid(X, Y)
     pos = np.dstack((X, Y))
-    rv = sc.multivariate_normal(mu, sigma)
-    Z = rv.pdf(pos)
-    return Z
+    Z_tot = np.zeros(X.shape)
+
+    for gaussian in gaussian_list:
+        Z_tot += gaussian.pdf(pos)
+    return Z_tot
 
 
 def generate_list_gaussians(means):
 
     gaussian_list = []
+    sigma_g = np.array([[1, 0], [0, 1]])
 
-    N = 100
-    X = np.linspace(MIN_X, MAX_X, N)
-    Y = np.linspace(MIN_Y, MAX_Y, N)
-
-    for mean in means:
-        mu_g = mean
-        sigma_g = np.array([[1, 0], [0, 1]])
-        Z = generate_gaussian(X, Y, mu_g, sigma_g)
-        gaussian_list.append(Z)
+    for mu_g in means:
+        gaussian_list.append(sc.multivariate_normal(mu_g, sigma_g))
 
     return gaussian_list
 
@@ -183,11 +183,11 @@ def expectation_step(gaussian: list[sc._multivariate.multivariate_normal_frozen]
     # Sum for the denominator
     divisor = 0
     for l in range(k):
-        divisor += gaussian[l].pdf(x)*alpha(l)
+        divisor += gaussian[l].pdf(x)*alpha[l]
 
     w_list = []
     for j in range(k):
-        w = gaussian[j].pdf(x)*alpha(j) / divisor
+        w = gaussian[j].pdf(x)*alpha[j] / divisor
         w_list.append(w)
 
     return w_list
@@ -196,9 +196,9 @@ def expectation_step(gaussian: list[sc._multivariate.multivariate_normal_frozen]
 def minimalization_step(w_list):
 
     for j in range(k):
-        # alpha = np.
-        # mu =
-        # sigma =
+        alpha = np.
+        mu =
+        sigma =
         pass
 
 
@@ -215,14 +215,17 @@ if __name__ == "__main__":
     show_plot(data_real, i=-1, save=False)
     mu = generate_means(k)
     sigma = generate_sigmas(k)
+    alphas = generate_alphas(k)
 
     N = 100
     X = np.linspace(MIN_X, MAX_X, N)
     Y = np.linspace(MIN_Y, MAX_Y, N)
     gaussian_list = generate_list_gaussians(mu[:, :2])
-    Z = sum(gaussian_list)
+    Z = draw_gaussian(X, Y, gaussian_list)
     plt.contour(X, Y, Z)
     plt.show()
+
+    w_list = expectation_step(gaussian_list, data, k, alphas)
 
     show_plot(data, mu, 0, save=True)
 
