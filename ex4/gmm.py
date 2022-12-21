@@ -4,12 +4,37 @@ import matplotlib.pyplot as plt
 import numpy as np
 import functools
 import scipy.stats as sc
+import sklearn.metrics as skl
 
 MIN_X = -10
 MAX_X = 10
 MIN_Y = MIN_X
 MAX_Y = MAX_X
 LIMIT_ITER = 100
+
+
+def generate_specific_means():
+    n = 100
+    c = 2
+
+    means = np.array([[-3, 1.5], [-3, -1.5]])
+    sigma = np.array([[6, 0], [0, 0.8]])
+    x = np.random.rand(100, 2)
+
+    x = np.matmul(x, sigma)
+    x1 = x + means[0]
+    x2 = x + means[1]
+
+    data = np.vstack([x1, x2])
+    data_real = data
+
+    label_default = np.zeros((n*c, 1))
+    data = np.append(data, label_default, axis=1)
+
+    label_real = np.repeat(np.array(range(c)), repeats=n).reshape(-1, 1)
+    data_real = np.append(data_real, label_real, axis=1)
+
+    return data, data_real
 
 
 def generate_data(n: int, c: int):
@@ -59,14 +84,14 @@ def generate_alphas(k):
     return np.ones(k)
 
 
-def show_plot(data, mu=None, i=0, gaussian_list=None, alpha_list=None, save=False):
+def show_plot(data, mu=None, i=0, gaussian_list=None, alpha_list=None, save=False, show=True):
 
     plt.scatter(x=data[:, 0], y=data[:, 1], c=data[:, 2], s=5)
     if mu is not None:
         plt.scatter(x=mu[:, 0], y=mu[:, 1], c=mu[:, 2],
                     marker="*", edgecolors="black", s=100)
     if gaussian_list is not None:
-        N = 100
+        N = 200
         X = np.linspace(MIN_X, MAX_X, N)
         Y = np.linspace(MIN_Y, MAX_Y, N)
         Z = draw_gaussian(X, Y, gaussian_list, alpha_list)
@@ -81,7 +106,11 @@ def show_plot(data, mu=None, i=0, gaussian_list=None, alpha_list=None, save=Fals
         plt.savefig(f'./output/{i}')
         plt.close()
     else:
-        plt.show()
+        if show == True:
+            plt.show()
+
+    if gaussian_list is not None:
+        return Z
 
 
 def duplicate_mu(data, mu):
@@ -143,7 +172,7 @@ def centroid_update(data, k):
     return new_mu
 
 
-def cluster(data, mu):
+def cluster(data, mu, save):
 
     total_cost = np.array([])
 
@@ -157,7 +186,7 @@ def cluster(data, mu):
             break
         mu = new_mu
         i += 1
-        show_plot(data, mu, i, save=True)
+        show_plot(data, mu, i, save=save, show=False)
 
     return data, mu, total_cost
 
@@ -173,13 +202,13 @@ def draw_gaussian(X, Y, gaussian_list: list[sc._multivariate.multivariate_normal
     return Z_tot
 
 
-def generate_list_gaussians(means):
+def generate_list_gaussians(means, sigma):
 
     gaussian_list = []
-    sigma_g = np.array([[1, 0], [0, 1]])
+    sigma = np.array([[1, 0], [0, 1]])
 
-    for mu_g in means:
-        gaussian_list.append(sc.multivariate_normal(mu_g, sigma_g))
+    for mu in means:
+        gaussian_list.append(sc.multivariate_normal(mu, sigma))
 
     return gaussian_list
 
@@ -213,7 +242,8 @@ def minimalization_step(w_list, data):
         mu = sum(w*x)/np.sum(w)
         sigma = np.matmul((x-mu).T, w*(x-mu))/np.sum(w)
 
-        gaussian_list.append(sc.multivariate_normal(mu, sigma))
+        gaussian_list.append(sc.multivariate_normal(
+            mu, sigma, allow_singular=True))
         # TODO numpy.linalg.LinAlgError: When `allow_singular is False`, the input matrix must be symmetric positive definite
 
         alpha_list.append(alpha)
@@ -221,9 +251,38 @@ def minimalization_step(w_list, data):
     return gaussian_list, alpha_list
 
 
+def gmm(gaussian_list, data, k, alpha_list):
+
+    # Show the data with the initialized gaussians
+    Z = show_plot(data, mu, -1, save=False,
+                  gaussian_list=gaussian_list, alpha_list=alpha_list)
+
+    # Run the Gaussian Mixture Method
+    for i in range(LIMIT_ITER):
+        w_list = expectation_step(gaussian_list, data, k, alpha_list)
+        gaussian_list, alpha_list = minimalization_step(w_list, data)
+
+        new_Z = show_plot(data, mu, i, save=True,
+                          gaussian_list=gaussian_list, alpha_list=alpha_list)
+        print(f'Iteration {i}', end="\r")
+        if np.allclose(Z, new_Z, rtol=1e-4, atol=1e-4):
+            break
+
+        Z = new_Z
+
+    print("")
+    w_as_array = np.array(w_list).squeeze()
+    return w_as_array
+
+
+def get_label(w_array):
+    labels = np.argmax(w_array, axis=0)
+    return labels.reshape(labels.shape[0])
+
+
 if __name__ == "__main__":
 
-    k = 5  # The number of clusters we'd like to find
+    k = 2  # The number of clusters we'd like to find
     n = 100  # The size of the data
     c = k  # The number of generated cluster (we should define c=k)
 
@@ -231,25 +290,34 @@ if __name__ == "__main__":
         shutil.rmtree('./output')
 
     data, data_real = generate_data(n, c)
-    show_plot(data_real, i=-1, save=False)
+
+    # If you want to generate specific data, uncomment this
+    # data, data_real = generate_specific_means()
+
+    # Show only the data
+    show_plot(data_real, i=-2, save=False)
+
+    # Generate the data for the gmm algorithm
     mu = generate_means(k)
     sigma = generate_sigmas(k)
     alpha_list = generate_alphas(k)
+    gaussian_list = generate_list_gaussians(mu[:, :2], sigma)
 
-    N = 100
-    X = np.linspace(MIN_X, MAX_X, N)
-    Y = np.linspace(MIN_Y, MAX_Y, N)
-    gaussian_list = generate_list_gaussians(mu[:, :2])
-    Z = draw_gaussian(X, Y, gaussian_list, alpha_list)
-    plt.contour(X, Y, Z)
-    plt.show()
+    # Run the gmm algorithm
+    w_array = gmm(gaussian_list, data, k, alpha_list)
+    labels = get_label(w_array)
 
-    for i in range(5):
-        w_list = expectation_step(gaussian_list, data, k, alpha_list)
-        gaussian_list, alpha_list = minimalization_step(w_list, data)
+    data_parsed = data
+    data_parsed[:, 2] = labels
+    show_plot(data_parsed, i=-2, save=False)
 
-        show_plot(data, mu, 0, save=False,
-                  gaussian_list=gaussian_list, alpha_list=alpha_list)
+    score_gmm = skl.adjusted_rand_score(data_real[:, 2], labels)
 
-    data, mu, total_cost = cluster(data, mu)
+    data, mu, total_cost = cluster(data, mu, save=False)
+
+    score_kmeans = skl.adjusted_rand_score(data_real[:, 2], data[:, 2])
+
+    print("gmm score: ", score_gmm)
+    print("kmeans score: ", score_kmeans)
+
     print("eof")
