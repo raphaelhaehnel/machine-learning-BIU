@@ -29,3 +29,9 @@ This exercise implements a nearest-neighbor face recognition algorithm using Eig
 - The following figure shows the reconstruction of the image, by using more and more components
 ![reconstruct_image](https://github.com/user-attachments/assets/09d6a7ee-af00-4883-95ff-62631716cc0c)
 
+## Bonus
+Animation of the K-means algorithm, in 2d and 3d
+
+![2d-animation](https://user-images.githubusercontent.com/69756617/207129209-124e0738-e074-42bf-9a15-248583a1051b.gif)
+![3d-animation](https://user-images.githubusercontent.com/69756617/207129236-741b5c15-6f14-404c-a721-9ee6f93cc319.gif)
+
