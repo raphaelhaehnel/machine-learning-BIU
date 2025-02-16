@@ -18,8 +18,14 @@ This exercise applies the K-means clustering algorithm to the MNIST dataset to g
 
 ## Ex5
 This exercise applies the Expectation-Maximization (EM) algorithm for Gaussian Mixture Models (GMM) to cluster 2D data generated from three Gaussians. K-means and GMM are compared based on their clustering accuracy against the true labels.
-
 ![gmm moving](https://github.com/user-attachments/assets/6733cc70-fc2f-4cc8-9f6f-a99eac221eb9)
 
 ## Ex6
 This exercise implements a nearest-neighbor face recognition algorithm using Eigenfaces and PCA. The model is trained on facial images, projects test images into a lower-dimensional space, and classifies them based on Euclidean distance to training images, analyzing classification performance as a function of K.
+
+- The following figure shows the decomposition of a face with 6 different components, and the mean of all the samples
+![show_PCA](https://github.com/user-attachments/assets/e87b1a6a-12c3-495d-8855-459b21c427a3)
+
+- The following figure shows the reconstruction of the image, by using more and more components
+![reconstruct_image](https://github.com/user-attachments/assets/09d6a7ee-af00-4883-95ff-62631716cc0c)
+
